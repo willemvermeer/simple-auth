@@ -1,0 +1,11 @@
+version: "3.3"
+services:
+  postgres-simple-auth:
+    container_name: postgres-simple-auth
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    volumes:
+      - ./var/pgdata:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
