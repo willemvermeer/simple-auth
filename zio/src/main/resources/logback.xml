@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
+    <shutdownHook/>
+
+    <property name="appName" value="zio-simple-auth"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%white(%d{HH:mm:ss.SSS}) %highlight(%-5level) %cyan(%-40(%logger{40})) %msg %args %n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- This appender is used only for classpath verification, that logstash encoder has no conflicts -->
+    <appender name="NOTUSED" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+    </appender>
+
+    <logger name="com.example" level="DEBUG" />
+    <logger name="io.netty" level="WARN" />
+    <logger name="ch.qos" level="WARN" />
+
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+</configuration>
