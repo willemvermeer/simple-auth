@@ -11,7 +11,7 @@ cd db
 
 ### Invoke /token endpoint
 ```bash
-curl http://localhost:8780/token -X POST -d '{"username":"john@example.com","password":"TopSecret0!"}' -H 'Content-Type: application/json'
+curl http://localhost:8781/token -X POST -d '{"username":"john@example.com","password":"TopSecret0!"}' -H 'Content-Type: application/json'
 ```
 
 ### Load test

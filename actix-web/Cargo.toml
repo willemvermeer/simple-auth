@@ -1,0 +1,33 @@
+[package]
+name = "actix-web-simple-auth"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 3
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web="4"
+config = "0.13.1"
+deadpool-postgres = { version = "0.10.2", features = ["serde"] }
+dotenv = "0.15.0"
+tokio-pg-mapper = "0.2.0"
+tokio-pg-mapper-derive = "0.2.0"
+tokio-postgres = "0.7.6"
+serde = { version = "1.0.158", features = ["derive"] }
+serde_json = "1.0"
+serde_with = "1.8"
+derive_more = "0.99.17"
+chrono = "0.4.23"
+jsonwebtoken = "8.2.0"
+hmac = "0.12"
+sha2 = "0.10"
+sha256 = "1.1"
+base64 = "0.21"
+hex = "0.4"
+num_cpus = "1.11"
+
+[build-dependencies]
+platforms = "2.0.0"
