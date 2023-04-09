@@ -1,9 +1,11 @@
 package com.example.auth
 
-import com.example.AuthConfig
+import com.example.{ AuthConfig, SimpleAuthConfig }
 import com.example.db.UserInfo
 import pdi.jwt._
+import zio.{ UIO, ZIO, ZLayer }
 import zio.json._
+
 import java.security.MessageDigest
 import java.time.Clock
 import scala.util.Try
@@ -27,6 +29,14 @@ object IdClaims {
       name = userInfo.name,
       email = userInfo.email
     )
+}
+
+object TokenCreator {
+  val live = ZLayer.fromZIO {
+    for {
+      config <- ZIO.service[SimpleAuthConfig]
+    } yield TokenCreator(config.auth)
+  }
 }
 case class TokenCreator(config: AuthConfig) {
 

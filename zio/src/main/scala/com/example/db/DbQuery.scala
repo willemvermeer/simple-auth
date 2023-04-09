@@ -1,6 +1,8 @@
 package com.example.db
 
+import com.example.SimpleAuthConfig
 import com.zaxxer.hikari.HikariDataSource
+import zio.{ ZIO, ZLayer }
 
 import java.sql.Connection
 import java.util.UUID
@@ -42,4 +44,12 @@ case class HikariConnectionPool private (datasource: HikariDataSource) extends C
   override def connection: Try[Connection] = Try(datasource.getConnection)
 
   override def close: Unit = datasource.close
+}
+object ConnectionPool {
+  val live: ZLayer[SimpleAuthConfig, Throwable, HikariConnectionPool] = ZLayer.fromZIO {
+    for {
+      config <- ZIO.service[SimpleAuthConfig]
+      pool   <- ZIO.attempt(HikariConnectionPool(new HikariDataSource(config.db.hikari)))
+    } yield pool
+  }
 }
