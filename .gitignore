@@ -3,5 +3,8 @@
 /**/target/
 /db/var/
 /akka-http/.idea
+/akka-http/.bsp
 /zio/.idea
+/zio/.bsp
 .idea/**
+/**/Cargo.lock
