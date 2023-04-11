@@ -7,5 +7,11 @@ services:
       dockerfile: db.Dockerfile
     volumes:
       - ./var/pgdata:/var/lib/postgresql/data
+    networks:
+      - network1
     ports:
       - "5435:5432"
+networks:
+  network1:
+    name: pg-perf
+    external: true

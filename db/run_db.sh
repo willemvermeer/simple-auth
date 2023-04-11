@@ -1,3 +1,4 @@
+docker network create pg-perf
 docker-compose -f docker-compose.yml up -d
 docker cp ./create.sql postgres-simple-auth:/tmp/create.sql
 echo "Wait 10 seconds for postgres to startup"
