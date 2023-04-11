@@ -2,3 +2,5 @@
 *.log
 /**/target/
 /db/var/
+/akka-http/.idea
+/zio/.idea
