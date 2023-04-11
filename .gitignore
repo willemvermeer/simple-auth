@@ -4,3 +4,4 @@
 /db/var/
 /akka-http/.idea
 /zio/.idea
+.idea/**
