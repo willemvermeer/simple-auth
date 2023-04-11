@@ -1,3 +1,5 @@
+package com.example
+
 import com.example.SimpleAuthConfig
 import com.example.auth.TokenCreator
 import com.example.db.ConnectionPool
