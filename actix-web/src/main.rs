@@ -175,8 +175,8 @@ mod handlers {
             let n2 = start.elapsed();
 
             let token_pair = TokenPair::create(&encoding_key, &header, common_claims, id_claims, access_claims).unwrap();
-            let id_token = token_pair.id_token.raw_token(&encoding_key).unwrap();
-            let access_token = token_pair.access_token.raw_token(&encoding_key).unwrap();
+            let id_token = token_pair.id_token.raw;
+            let access_token = token_pair.access_token.raw;
 
             let n3 = start.elapsed();
 

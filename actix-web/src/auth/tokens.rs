@@ -11,11 +11,9 @@ pub struct IdToken {
     pub header: Header,
     pub claims: JwtClaim,
     pub content: IdClaims,
+    pub raw: String,
 }
 impl IdToken {
-    pub fn raw_token(&self, encoding_key: &EncodingKey) -> Result<String> {
-        create_token(encoding_key, &self.header, self.claims.clone(), self.content.clone())
-    }
     pub fn from_raw_token(conf: &AuthConfig, raw_token: &str) -> Result<IdToken> {
         let decoding_key= &conf.decoding_key.clone().expect("token can not be decoded without the decoding key");
         let token_data = decode::<Value>(raw_token, decoding_key, &Validation::new(Algorithm::RS256))?;
@@ -24,7 +22,8 @@ impl IdToken {
         Ok(IdToken{
             header: token_data.header,
             claims: jwt_claims,
-            content: id_claims
+            content: id_claims,
+            raw: raw_token.to_string(),
         })
     }
 }
@@ -34,11 +33,9 @@ pub struct AccessToken {
     pub header: Header,
     pub claims: JwtClaim,
     pub content: AccessClaims,
+    pub raw: String,
 }
 impl AccessToken {
-    pub fn raw_token(&self, encoding_key: &EncodingKey) -> Result<String> {
-        create_token(encoding_key, &self.header, self.claims.clone(), self.content.clone())
-    }
     pub fn from_raw_token(conf: &AuthConfig, raw_token: &str) -> Result<AccessToken> {
         let decoding_key= &conf.decoding_key.clone().expect("token can not be decoded without the decoding key");
         let token_data = decode::<Value>(raw_token, decoding_key, &Validation::new(Algorithm::RS256))?;
@@ -47,7 +44,8 @@ impl AccessToken {
         Ok(AccessToken{
             header: token_data.header,
             claims: jwt_claims,
-            content: access_claims
+            content: access_claims,
+            raw: raw_token.to_string()
         })
     }
 }
@@ -65,37 +63,42 @@ impl TokenPair {
         id_claims: IdClaims,
         access_claims: AccessClaims
     ) -> Result<TokenPair> {
+
+        let at_tkn = create_token(encoding_key, &header, common_claims.clone(), access_claims.clone()).unwrap();
+        let at_hash = hash_token(&at_tkn)?;
+        let id_claims_with_hash = id_claims.with_at_hash(at_hash);
+        let id_tkn = create_token(encoding_key, &header, common_claims.clone(), id_claims_with_hash.clone()).unwrap();
         let access_token = AccessToken {
             header: header.clone(),
             claims: common_claims.clone(),
             content: access_claims,
+            raw: at_tkn
         };
-        let at_hash = access_token.raw_token(encoding_key).and_then(|at| hash_token(&at))?;
-
         let id_token = IdToken {
             header: header.clone(),
             claims: common_claims,
-            content: id_claims.with_at_hash(at_hash),
+            content: id_claims_with_hash,
+            raw: id_tkn
         };
         Ok(TokenPair {
             id_token: id_token,
             access_token: access_token,
         })
     }
-    pub fn from_raw_tokens(conf: &AuthConfig, raw_id_token: &str, raw_access_token: &str) -> Result<TokenPair> {
-        let id_token = IdToken::from_raw_token(conf, raw_id_token)?;
-        let access_token = AccessToken::from_raw_token(conf, raw_access_token)?;
-        let at_hash = &access_token.raw_token(&conf.encoding_key).and_then(|at| hash_token(&at))?;
-        let id_at_hash = &id_token.content.at_hash.clone().unwrap_or("".to_string());
-        if !at_hash.eq(id_at_hash) {
-            Err(Error{ message: "The access token hash does not match the corresponding id token at_hash value.".to_string() })
-        } else {
-            Ok(TokenPair {
-                id_token: id_token,
-                access_token: access_token
-            })
-        }
-    }
+    // pub fn from_raw_tokens(conf: &AuthConfig, raw_id_token: &str, raw_access_token: &str) -> Result<TokenPair> {
+    //     let id_token = IdToken::from_raw_token(conf, raw_id_token)?;
+    //     let access_token = AccessToken::from_raw_token(conf, raw_access_token)?;
+    //     let at_hash = &access_token.raw_token(&conf.encoding_key).and_then(|at| hash_token(&at))?;
+    //     let id_at_hash = &id_token.content.at_hash.clone().unwrap_or("".to_string());
+    //     if !at_hash.eq(id_at_hash) {
+    //         Err(Error{ message: "The access token hash does not match the corresponding id token at_hash value.".to_string() })
+    //     } else {
+    //         Ok(TokenPair {
+    //             id_token: id_token,
+    //             access_token: access_token
+    //         })
+    //     }
+    // }
 }
 
 fn create_token<T: Serialize>(encoding_key: &EncodingKey, header: &Header, claims: JwtClaim, content: T) -> Result<String> {
