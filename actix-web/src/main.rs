@@ -214,13 +214,13 @@ async fn main() -> std::io::Result<()> {
 
     dotenv().ok();
     let config_ = Config::builder()
-        .add_source(::config::Environment::default())
+        .add_source(::config::Environment::default().separator("__"))
         .build()
         .unwrap();
 
     let config: ExampleConfig = config_.try_deserialize().unwrap();
     println!("config: {}", config.server_addr);
-    let pool = config.pg.builder(NoTls).unwrap().max_size(num_cpus * 5).build().unwrap();
+    let pool = config.pg.builder(NoTls).unwrap().build().unwrap();
     println!("pool started");
     let encoding_key = jsonwebtoken::EncodingKey::from_rsa_pem(include_bytes!("private_key.pem"))
         .expect("Should have been able to read the file");
