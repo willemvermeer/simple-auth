@@ -5,13 +5,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct Error {
     pub message: String,
 }
-impl Error {
-    pub fn from<T: std::fmt::Display>(err: T) -> Self {
-        Error {
-            message: err.to_string(),
-        }
-    }
-}
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
         Self {

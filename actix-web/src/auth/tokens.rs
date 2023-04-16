@@ -1,6 +1,5 @@
-use jsonwebtoken::{decode, encode, Algorithm, EncodingKey, Header, Validation};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::auth::claims::*;
 use crate::auth::errors::*;

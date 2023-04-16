@@ -67,34 +67,12 @@ impl JwtClaim {
             jti: self.jti,
         }
     }
-    pub fn with_subject(self, subject: String) -> Self {
-        JwtClaim {
-            iss: self.iss,
-            sub: Some(subject),
-            aud: self.aud,
-            exp: self.exp,
-            nbf: self.nbf,
-            iat: self.iat,
-            jti: self.jti,
-        }
-    }
     pub fn with_audience(self, audience: String) -> Self {
         JwtClaim {
             iss: self.iss,
             sub: self.sub,
             aud: Some(audience),
             exp: self.exp,
-            nbf: self.nbf,
-            iat: self.iat,
-            jti: self.jti,
-        }
-    }
-    pub fn expires_at(self, seconds_since_epoch: u64) -> Self {
-        JwtClaim {
-            iss: self.iss,
-            sub: self.sub,
-            aud: self.aud,
-            exp: Some(seconds_since_epoch),
             nbf: self.nbf,
             iat: self.iat,
             jti: self.jti,
@@ -111,39 +89,6 @@ impl JwtClaim {
             jti: self.jti,
         }
     }
-    pub fn starts_at(self, seconds_since_epoch: u64) -> Self {
-        JwtClaim {
-            iss: self.iss,
-            sub: self.sub,
-            aud: self.aud,
-            exp: self.exp,
-            nbf: Some(seconds_since_epoch),
-            iat: self.iat,
-            jti: self.jti,
-        }
-    }
-    pub fn starts_now(self) -> Self {
-        JwtClaim {
-            iss: self.iss,
-            sub: self.sub,
-            aud: self.aud,
-            exp: self.exp,
-            nbf: Some(duration_since_epoch().as_secs()),
-            iat: self.iat,
-            jti: self.jti,
-        }
-    }
-    pub fn issued_at(self, seconds_since_epoch: u64) -> Self {
-        JwtClaim {
-            iss: self.iss,
-            sub: self.sub,
-            aud: self.aud,
-            exp: self.exp,
-            nbf: self.nbf,
-            iat: Some(seconds_since_epoch),
-            jti: self.jti,
-        }
-    }
     pub fn issued_now(self) -> Self {
         JwtClaim {
             iss: self.iss,
@@ -153,17 +98,6 @@ impl JwtClaim {
             nbf: self.nbf,
             iat: Some(duration_since_epoch().as_secs()),
             jti: self.jti,
-        }
-    }
-    pub fn with_id(self, id: String) -> Self {
-        JwtClaim {
-            iss: self.iss,
-            sub: self.sub,
-            aud: self.aud,
-            exp: self.exp,
-            nbf: self.nbf,
-            iat: self.iat,
-            jti: Some(id),
         }
     }
     pub fn with_content<T: Serialize>(self, content: T) -> JwtClaimWithContent<T> {

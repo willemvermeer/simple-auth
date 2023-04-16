@@ -106,17 +106,15 @@ mod handlers {
     use crate::auth::tokens::TokenPair;
     use crate::{
         db,
-        errors::MyError,
         models::{LogonRequest, TokenResponse},
     };
     use actix_web::{web, Error, HttpResponse};
     use base64::{engine::general_purpose, Engine as _};
-    use chrono::{prelude::*, Duration};
+    use chrono::Duration;
     use deadpool_postgres::{Client, Pool};
     use hmac::{Hmac, Mac};
-    use jsonwebtoken::{encode, Algorithm, DecodingKey, EncodingKey, Header};
+    use jsonwebtoken::{Algorithm, EncodingKey, Header};
     use sha2::Sha256;
-    use std::fs;
     use std::time::Instant;
 
     type HmacSha256 = Hmac<Sha256>;
@@ -190,7 +188,6 @@ mod handlers {
 
 use ::config::Config;
 use actix_web::{web, App, HttpServer};
-use deadpool_postgres::{Manager, ManagerConfig, Pool, PoolConfig, RecyclingMethod, Runtime};
 use dotenv::dotenv;
 use handlers::logon_user;
 use tokio_postgres::NoTls;
