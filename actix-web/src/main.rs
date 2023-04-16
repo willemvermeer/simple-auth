@@ -3,7 +3,7 @@ mod auth;
 mod config {
     use serde::Deserialize;
     #[derive(Debug, Default, Deserialize)]
-    pub struct ExampleConfig {
+    pub struct SimpleAuthConfig {
         pub server_addr: String,
         pub pg: deadpool_postgres::Config,
     }
@@ -18,9 +18,6 @@ mod models {
     pub struct TokenResponse {
         pub access_token: String,
         pub id_token: String,
-        pub scope: String,
-        pub expires_in: i32,
-        pub token_type: String,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -88,7 +85,7 @@ mod db {
         models::{LogonRequest, User},
     };
 
-    pub async fn get_user(client: &Client, user_info: LogonRequest) -> Result<User, MyError> {
+    pub async fn get_user(client: &Client, user_info: &LogonRequest) -> Result<User, MyError> {
         let _stmt = "SELECT id::TEXT, name, email, hashpassword, salt from users where email = $1;"
             .to_string();
         let stmt = client.prepare(&_stmt).await.unwrap();
@@ -132,53 +129,37 @@ mod handlers {
         general_purpose::STANDARD.encode(result)
     }
 
-    pub async fn add_user(
+    pub async fn logon_user(
         logon_req: web::Json<LogonRequest>,
         state: web::Data<(Pool, EncodingKey)>,
     ) -> Result<HttpResponse, Error> {
-        let start = Instant::now();
-
-        // println!("Logon endpoint invoked");
         let user_info: LogonRequest = logon_req.into_inner();
 
-        let m1 = start.elapsed();
-
+        // get 'static' variables from the state
         let (db_pool, encoding_key) = state.get_ref();
 
+        let start = Instant::now();
         let client: Client = db_pool.get().await.unwrap();
+        let user_from_db = db::get_user(&client, &user_info).await?;
+        let time_db = start.elapsed();
 
-        let m2 = start.elapsed();
-
-        let request_password = &user_info.password.clone();
-        let new_user = db::get_user(&client, user_info).await?;
-
-        let m3 = start.elapsed();
-
-        let hashpassword = new_user.hashpassword.to_string();
-
-        let encoded = hash_password(&request_password, &new_user.salt);
-
-        if encoded != hashpassword {
-            println!("Incorrect password for user ");
-            Ok(HttpResponse::InternalServerError().body("error"))
+        let encoded = hash_password(&user_info.password, &user_from_db.salt);
+        if encoded != user_from_db.hashpassword.to_string() {
+            Ok(HttpResponse::InternalServerError().body("Incorrect password"))
         } else {
-            println!("Logon success for user");
-            let n1 = start.elapsed();
+            let time_hash = start.elapsed() - time_db;
 
             let header = Header::new(Algorithm::RS256);
-
             let common_claims = JwtClaim::empty()
                 .with_audience("simple-auth.example.com".to_string())
                 .with_issuer("https://example.com".to_string())
                 .issued_now()
                 .expires_in(Duration::minutes(60).num_seconds().unsigned_abs());
 
-            let id_claims = new_user.to_id_claims();
+            let id_claims = user_from_db.to_id_claims();
             let access_claims = AccessClaims {
                 session_id: "session_id".to_string(),
             };
-
-            let n2 = start.elapsed();
 
             let token_pair = TokenPair::create(
                 &encoding_key,
@@ -188,23 +169,20 @@ mod handlers {
                 access_claims,
             )
             .unwrap();
-            let id_token = token_pair.id_token.raw;
-            let access_token = token_pair.access_token.raw;
-
-            let n3 = start.elapsed();
+            let time_token = start.elapsed() - time_hash;
 
             let response = TokenResponse {
-                id_token: id_token,
-                access_token: access_token,
-                expires_in: 1000,
-                scope: "scope".to_string(),
-                token_type: "whatever".to_string(),
+                access_token: token_pair.access_token.raw,
+                id_token: token_pair.id_token.raw,
             };
 
-            let mx = start.elapsed();
-            println!("Elapsed total: {}; db_pool: {}; get_user: {}; hash_password: {}; claims: {}; tokens: {}",
-                     mx.as_millis(), (m2-m1).as_millis(), (m3-m2).as_millis(),
-                     (n1-m3).as_millis(), (n2-n1).as_millis(), (n3-n2).as_millis());
+            println!(
+                "Actix-web Db time {}ms Password hash {}ms Token creation {}ms.",
+                time_db.as_millis(),
+                time_hash.as_millis(),
+                time_token.as_millis()
+            );
+
             Ok(HttpResponse::Ok().json(response))
         }
     }
@@ -214,38 +192,39 @@ use ::config::Config;
 use actix_web::{web, App, HttpServer};
 use deadpool_postgres::{Manager, ManagerConfig, Pool, PoolConfig, RecyclingMethod, Runtime};
 use dotenv::dotenv;
-use handlers::add_user;
+use handlers::logon_user;
 use tokio_postgres::NoTls;
 
-use crate::config::ExampleConfig;
+use crate::config::SimpleAuthConfig;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let num_cpus = num_cpus::get_physical();
-    println!("Available CPUs: {}", num_cpus);
-
     dotenv().ok();
     let config_ = Config::builder()
         .add_source(::config::Environment::default().separator("__"))
         .build()
         .unwrap();
 
-    let config: ExampleConfig = config_.try_deserialize().unwrap();
-    println!("config: {}", config.server_addr);
+    let config: SimpleAuthConfig = config_.try_deserialize().unwrap();
+
     let pool = config.pg.builder(NoTls).unwrap().build().unwrap();
-    println!("pool started");
+
     let encoding_key = jsonwebtoken::EncodingKey::from_rsa_pem(include_bytes!("private_key.pem"))
         .expect("Should have been able to read the file");
 
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new((pool.clone(), encoding_key.clone())))
-            .service(web::resource("/token").route(web::post().to(add_user)))
+            .service(web::resource("/token").route(web::post().to(logon_user)))
     })
-    .workers(num_cpus * 5)
+    .workers(50)
     .bind(config.server_addr.clone())?
     .run();
-    println!("Server running at http://{}/", config.server_addr);
+
+    println!(
+        "Actix-web simple auth open for e-Business at http://{}/",
+        config.server_addr
+    );
 
     server.await
 }

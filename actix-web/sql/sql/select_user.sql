@@ -1,1 +1,0 @@
-SELECT id, name, email, hashpassword, salt from users where email = $1;

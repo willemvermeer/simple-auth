@@ -28,7 +28,6 @@ sha2 = "0.10"
 sha256 = "1.1"
 base64 = "0.21"
 hex = "0.4"
-num_cpus = "1.11"
 
 [build-dependencies]
 platforms = "2.0.0"
