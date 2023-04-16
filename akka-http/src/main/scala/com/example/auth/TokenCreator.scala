@@ -73,7 +73,7 @@ case class TokenCreator(config: AuthConfig) {
 
 case class AccessClaims(sessionId: String)
 case class IdClaims(
-                   id: String,
+  id: String,
   name: String,
   email: String,
   at_hash: Option[String] = None
@@ -84,7 +84,7 @@ object IdClaims {
     IdClaims(
       id = userInfo.id.toString,
       name = userInfo.name,
-      email = userInfo.email,
+      email = userInfo.email
     )
 }
 
