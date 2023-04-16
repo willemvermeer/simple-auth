@@ -34,20 +34,21 @@ object TokenRoute {
         (for {
           tokenReq <- ZIO.absolve(req.body.asString(UTF_8).map(_.fromJson[TokenRequest]))
           pool     <- ZIO.service[HikariConnectionPool]
-          tuple1   <- ZIO.fromTry(DbQuery.userInfo(tokenReq.username, pool)).timed
-          userInfo = tuple1._2
-          tuple2 <- ZIO
-                     .fromTry(
-                       KeyTools.verifyHmacHash(tokenReq.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
-                     )
-                     .timed
-          _            <- ZIO.cond(tuple2._2, ZIO.succeed(()), ZIO.fail("Incorrect password"))
+          timedDb  <- ZIO.fromTry(DbQuery.userInfo(tokenReq.username, pool)).timed
+          userInfo = timedDb._2
+          timedHash <- ZIO
+                        .fromTry(
+                          KeyTools
+                            .verifyHmacHash(tokenReq.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
+                        )
+                        .timed
+          _            <- ZIO.cond(timedHash._2, ZIO.succeed(()), ZIO.fail("Incorrect password"))
           tokenCreator <- ZIO.service[TokenCreator]
-          tuple3       <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
-          tokenPair    = tuple3._2
+          timedToken   <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
+          tokenPair    = timedToken._2
           response     = TokenResponse(tokenPair.accessToken.rawToken, tokenPair.idToken.rawToken)
           _ <- Console.printLine(
-                s"ZIO Db time ${toMs(tuple1._1)} Password hash ${toMs(tuple2._1)} Token creation ${toMs(tuple3._1)}."
+                s"ZIO Db time ${toMs(timedDb._1)} Password hash ${toMs(timedHash._1)} Token creation ${toMs(timedToken._1)}."
               )
           resp <- ZIO.succeed(Response.json(response.toJson))
         } yield resp).catchAll(ex => ZIO.succeed(Response.text(s"error $ex")))

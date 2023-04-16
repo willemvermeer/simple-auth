@@ -2,7 +2,7 @@ package com.example.auth
 
 import java.nio.charset.StandardCharsets
 import java.security.spec.PKCS8EncodedKeySpec
-import java.security.{KeyFactory, PrivateKey}
+import java.security.{ KeyFactory, PrivateKey }
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
