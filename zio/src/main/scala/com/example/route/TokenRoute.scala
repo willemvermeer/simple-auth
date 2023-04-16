@@ -3,12 +3,13 @@ package com.example.route
 import com.example.SimpleAuthConfig
 import com.example.auth.TokenCreator
 import com.example.db.{ DbQuery, HikariConnectionPool }
-import zio.ZIO
-import zio.json._
-import zio.http.model.Method
+import zio.{ Console, Duration, UIO, ZIO }
 import zio.http._
+import zio.http.model.Method
+import zio.json._
 
 import java.nio.charset.StandardCharsets
+import java.time.temporal.ChronoUnit.NANOS
 import java.util.UUID
 
 case class TokenRequest(username: String, password: String)
@@ -31,22 +32,24 @@ object TokenRoute {
         } yield resp
       case req @ Method.POST -> !! / "token" =>
         (for {
-          config <- ZIO.service[SimpleAuthConfig]
           tReq <- req.body
                    .asString(StandardCharsets.UTF_8)
                    .map(_.fromJson[TokenRequest])
           pool <- ZIO.service[HikariConnectionPool]
-          userInfo <- tReq match {
-                       case Left(err) => ZIO.fail(err)
-                       case Right(r) =>
-                         println(s"Received $r")
-                         ZIO.fromTry(DbQuery.userInfo(r.username, pool))
-                     }
+          tuple <- tReq match {
+                    case Left(err) => ZIO.fail(err).timed
+                    case Right(r) =>
+                      ZIO.fromTry(DbQuery.userInfo(r.username, pool)).timed
+                  }
+          userInfo     = tuple._2
           tokenCreator <- ZIO.service[TokenCreator]
-          pair         <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString))
+          tuple2       <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
+          pair         = tuple2._2
           response     = TokenResponse(pair.accessToken.rawToken, pair.idToken.rawToken)
+          _            <- Console.printLine(s"ZIO Db time ${toMs(tuple._1)}ms token creation ${toMs(tuple2._1)}ms.")
           resp         <- ZIO.succeed(Response.json(response.toJson))
         } yield resp).catchAll(ex => ZIO.succeed(Response.text(s"error $ex")))
     }
 
+  private def toMs(dur: Duration) = s"${dur.get(NANOS) / 1e6}ms"
 }

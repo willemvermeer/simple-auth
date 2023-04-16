@@ -1,10 +1,10 @@
 package com.example.auth
 
-import com.example.{ AuthConfig, SimpleAuthConfig }
 import com.example.db.UserInfo
+import com.example.{ AuthConfig, SimpleAuthConfig }
 import pdi.jwt._
-import zio.{ UIO, ZIO, ZLayer }
 import zio.json._
+import zio.{ ZIO, ZLayer }
 
 import java.security.MessageDigest
 import java.time.Clock
