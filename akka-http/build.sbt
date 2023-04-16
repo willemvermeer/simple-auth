@@ -1,11 +1,6 @@
 import com.typesafe.sbt.packager.docker._
 
-name := "akka-http-simple-auth"
-
-version := "1.0"
-
-scalaVersion := "2.13.1"
-
+ThisBuild / scalaVersion := "2.13.10"
 ThisBuild / useCoursier := false
 
 val jreDockerBaseImage = "azul/zulu-openjdk-alpine:17.0.3"
@@ -29,31 +24,20 @@ def assemblySettings(enabled: Boolean) = Seq(
   assemblyPackageDependency / assembleArtifact := enabled
 )
 
-lazy val akkaVersion       = "2.7.0"
-lazy val akkaHttpVersion   = "10.4.0"
-lazy val postgresVersion   = "42.5.4"
-lazy val hikariVersion     = "5.0.1"
-lazy val logbackVersion    = "1.2.3"
-lazy val akkaJson4sVersion = "1.39.2"
-lazy val json4sVersion     = "4.0.6"
-lazy val commCodecVersion  = "1.15"
-lazy val jwtVersion        = "9.2.0"
-lazy val bCastleVersion    = "1.70"
-
 lazy val akkaLibraryDependencies: Seq[ModuleID] = Seq(
-  "com.typesafe.akka"    %% "akka-stream"              % akkaVersion,
-  "com.typesafe.akka"    %% "akka-http"                % akkaHttpVersion,
-  "commons-codec"         % "commons-codec"            % commCodecVersion,
-  "ch.qos.logback"        % "logback-classic"          % logbackVersion,
-  "org.postgresql"        % "postgresql"               % postgresVersion,
-  "com.zaxxer"            % "HikariCP"                 % hikariVersion,
-  "de.heikoseeberger"    %% "akka-http-json4s"         % akkaJson4sVersion,
-  "org.json4s"           %% "json4s-native"            % json4sVersion,
-  "org.json4s"           %% "json4s-ext"               % json4sVersion,
-  "com.github.jwt-scala" %% "jwt-core"                 % jwtVersion,
-  "com.github.jwt-scala" %% "jwt-json4s-native"        % jwtVersion,
-  "org.bouncycastle"      % "bcpkix-jdk15on"           % bCastleVersion,
-  "com.typesafe.akka"    %% "akka-actor-testkit-typed" % akkaVersion % Test,
+  "com.typesafe.akka"    %% "akka-stream"              % "2.7.0",
+  "com.typesafe.akka"    %% "akka-http"                % "10.4.0",
+  "commons-codec"         % "commons-codec"            % "1.15",
+  "ch.qos.logback"        % "logback-classic"          % "1.2.3",
+  "org.postgresql"        % "postgresql"               % "42.5.4",
+  "com.zaxxer"            % "HikariCP"                 % "5.0.1",
+  "de.heikoseeberger"    %% "akka-http-json4s"         % "1.39.2",
+  "org.json4s"           %% "json4s-native"            % "4.0.6",
+  "org.json4s"           %% "json4s-ext"               % "4.0.6",
+  "com.github.jwt-scala" %% "jwt-core"                 % "9.2.0",
+  "com.github.jwt-scala" %% "jwt-json4s-native"        % "9.2.0",
+  "org.bouncycastle"      % "bcpkix-jdk15on"           % "1.70",
+  "com.typesafe.akka"    %% "akka-actor-testkit-typed" % "2.7.0" % Test,
   "org.scalatest"        %% "scalatest"                % "3.1.0"     % Test
 )
 

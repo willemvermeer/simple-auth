@@ -13,7 +13,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "zio-simple-auth",
     buildInfoPackage := "com.example",
-    packageName in Docker := "zio-simple-auth",
+    Docker / packageName := "zio-simple-auth",
     dockerBaseImage := jreDockerBaseImage,
     dockerCommands ++= Seq(
       Cmd("USER", "root"),
@@ -36,10 +36,10 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "dev.zio"              %% "zio-http"          % "0.0.5",
       "dev.zio"              %% "zio-json"          % "0.5.0",
-      "org.postgresql"       % "postgresql"         % "42.5.0",
-      "com.zaxxer"           % "HikariCP"           % "3.4.5",
+      "org.postgresql"       % "postgresql"         % "42.5.4",
+      "com.zaxxer"           % "HikariCP"           % "5.0.1",
       "commons-codec"        % "commons-codec"      % "1.15",
-      "com.github.jwt-scala" %% "jwt-core"          % "9.1.1",
+      "com.github.jwt-scala" %% "jwt-core"          % "9.2.0",
       "com.typesafe"         % "config"             % "1.4.2",
       "dev.zio"              %% "zio-test"          % "2.0.5" % Test
     ),
