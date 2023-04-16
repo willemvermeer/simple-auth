@@ -1,14 +1,14 @@
 package com.example.route
 
 import com.example.SimpleAuthConfig
-import com.example.auth.TokenCreator
+import com.example.auth.{ KeyTools, TokenCreator }
 import com.example.db.{ DbQuery, HikariConnectionPool }
 import zio.{ Console, Duration, UIO, ZIO }
 import zio.http._
 import zio.http.model.Method
 import zio.json._
 
-import java.nio.charset.StandardCharsets
+import java.nio.charset.StandardCharsets.UTF_8
 import java.time.temporal.ChronoUnit.NANOS
 import java.util.UUID
 
@@ -32,22 +32,24 @@ object TokenRoute {
         } yield resp
       case req @ Method.POST -> !! / "token" =>
         (for {
-          tReq <- req.body
-                   .asString(StandardCharsets.UTF_8)
-                   .map(_.fromJson[TokenRequest])
-          pool <- ZIO.service[HikariConnectionPool]
-          tuple <- tReq match {
-                    case Left(err) => ZIO.fail(err).timed
-                    case Right(r) =>
-                      ZIO.fromTry(DbQuery.userInfo(r.username, pool)).timed
-                  }
-          userInfo     = tuple._2
+          tokenReq <- ZIO.absolve(req.body.asString(UTF_8).map(_.fromJson[TokenRequest]))
+          pool     <- ZIO.service[HikariConnectionPool]
+          tuple1   <- ZIO.fromTry(DbQuery.userInfo(tokenReq.username, pool)).timed
+          userInfo = tuple1._2
+          tuple2 <- ZIO
+                     .fromTry(
+                       KeyTools.verifyHmacHash(tokenReq.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
+                     )
+                     .timed
+          _            <- ZIO.cond(tuple2._2, ZIO.succeed(()), ZIO.fail("Incorrect password"))
           tokenCreator <- ZIO.service[TokenCreator]
-          tuple2       <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
-          pair         = tuple2._2
-          response     = TokenResponse(pair.accessToken.rawToken, pair.idToken.rawToken)
-          _            <- Console.printLine(s"ZIO Db time ${toMs(tuple._1)}ms token creation ${toMs(tuple2._1)}ms.")
-          resp         <- ZIO.succeed(Response.json(response.toJson))
+          tuple3       <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
+          tokenPair    = tuple3._2
+          response     = TokenResponse(tokenPair.accessToken.rawToken, tokenPair.idToken.rawToken)
+          _ <- Console.printLine(
+                s"ZIO Db time ${toMs(tuple1._1)} Password hash ${toMs(tuple2._1)} Token creation ${toMs(tuple3._1)}."
+              )
+          resp <- ZIO.succeed(Response.json(response.toJson))
         } yield resp).catchAll(ex => ZIO.succeed(Response.text(s"error $ex")))
     }
 
