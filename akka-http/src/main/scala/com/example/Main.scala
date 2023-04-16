@@ -29,7 +29,7 @@ object Main extends App {
     _ <- Http()
           .newServerAt(config.http.interface, config.http.port)
           .bind(route)
-          .map(_ => println("Akka http simple auth open for e-Business"))
+          .map(_ => println(s"Akka http simple auth open for e-Business on port ${config.http.port}"))
           .recover { case ex => ex.printStackTrace() }
     waitForever <- Future.never
   } yield waitForever

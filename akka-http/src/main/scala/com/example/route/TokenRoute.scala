@@ -26,10 +26,13 @@ case class TokenRoute(dbPool: HikariConnectionPool, tokenCreator: TokenCreator)(
   def route = path("token") {
     post {
       entity(as[TokenRequest]) { tokenRequest =>
-        println(tokenRequest)
+        val now = System.currentTimeMillis()
         onComplete(for {
           userInfo  <- DbQuery.userInfo(tokenRequest.username, dbPool).toFuture
+          timeDb    = System.currentTimeMillis()
           tokenPair <- tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString).toFuture
+          timeToken = System.currentTimeMillis()
+          _         = println(s"Akka Db time ${timeDb - now}ms token creation ${timeToken - timeDb}ms.")
           response <- Future {
                        TokenResponse(
                          access_token = tokenPair.accessToken.rawToken,
