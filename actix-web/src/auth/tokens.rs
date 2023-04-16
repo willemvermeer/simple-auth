@@ -1,4 +1,4 @@
-use jsonwebtoken::{encode, Algorithm, Header, Validation, decode, EncodingKey};
+use jsonwebtoken::{decode, encode, Algorithm, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -15,11 +15,15 @@ pub struct IdToken {
 }
 impl IdToken {
     pub fn from_raw_token(conf: &AuthConfig, raw_token: &str) -> Result<IdToken> {
-        let decoding_key= &conf.decoding_key.clone().expect("token can not be decoded without the decoding key");
-        let token_data = decode::<Value>(raw_token, decoding_key, &Validation::new(Algorithm::RS256))?;
+        let decoding_key = &conf
+            .decoding_key
+            .clone()
+            .expect("token can not be decoded without the decoding key");
+        let token_data =
+            decode::<Value>(raw_token, decoding_key, &Validation::new(Algorithm::RS256))?;
         let jwt_claims = serde_json::from_str::<JwtClaim>(&token_data.claims.to_string())?;
         let id_claims = serde_json::from_str::<IdClaims>(&token_data.claims.to_string())?;
-        Ok(IdToken{
+        Ok(IdToken {
             header: token_data.header,
             claims: jwt_claims,
             content: id_claims,
@@ -37,15 +41,19 @@ pub struct AccessToken {
 }
 impl AccessToken {
     pub fn from_raw_token(conf: &AuthConfig, raw_token: &str) -> Result<AccessToken> {
-        let decoding_key= &conf.decoding_key.clone().expect("token can not be decoded without the decoding key");
-        let token_data = decode::<Value>(raw_token, decoding_key, &Validation::new(Algorithm::RS256))?;
+        let decoding_key = &conf
+            .decoding_key
+            .clone()
+            .expect("token can not be decoded without the decoding key");
+        let token_data =
+            decode::<Value>(raw_token, decoding_key, &Validation::new(Algorithm::RS256))?;
         let jwt_claims = serde_json::from_str::<JwtClaim>(&token_data.claims.to_string())?;
         let access_claims = serde_json::from_str::<AccessClaims>(&token_data.claims.to_string())?;
-        Ok(AccessToken{
+        Ok(AccessToken {
             header: token_data.header,
             claims: jwt_claims,
             content: access_claims,
-            raw: raw_token.to_string()
+            raw: raw_token.to_string(),
         })
     }
 }
@@ -61,24 +69,35 @@ impl TokenPair {
         header: &Header,
         common_claims: JwtClaim,
         id_claims: IdClaims,
-        access_claims: AccessClaims
+        access_claims: AccessClaims,
     ) -> Result<TokenPair> {
-
-        let at_tkn = create_token(encoding_key, &header, common_claims.clone(), access_claims.clone()).unwrap();
+        let at_tkn = create_token(
+            encoding_key,
+            &header,
+            common_claims.clone(),
+            access_claims.clone(),
+        )
+        .unwrap();
         let at_hash = hash_token(&at_tkn)?;
         let id_claims_with_hash = id_claims.with_at_hash(at_hash);
-        let id_tkn = create_token(encoding_key, &header, common_claims.clone(), id_claims_with_hash.clone()).unwrap();
+        let id_tkn = create_token(
+            encoding_key,
+            &header,
+            common_claims.clone(),
+            id_claims_with_hash.clone(),
+        )
+        .unwrap();
         let access_token = AccessToken {
             header: header.clone(),
             claims: common_claims.clone(),
             content: access_claims,
-            raw: at_tkn
+            raw: at_tkn,
         };
         let id_token = IdToken {
             header: header.clone(),
             claims: common_claims,
             content: id_claims_with_hash,
-            raw: id_tkn
+            raw: id_tkn,
         };
         Ok(TokenPair {
             id_token: id_token,
@@ -101,10 +120,13 @@ impl TokenPair {
     // }
 }
 
-fn create_token<T: Serialize>(encoding_key: &EncodingKey, header: &Header, claims: JwtClaim, content: T) -> Result<String> {
-    let claims = claims
-        .with_content(content)
-        .as_json_value()?;
+fn create_token<T: Serialize>(
+    encoding_key: &EncodingKey,
+    header: &Header,
+    claims: JwtClaim,
+    content: T,
+) -> Result<String> {
+    let claims = claims.with_content(content).as_json_value()?;
     let token = encode(header, &claims, encoding_key)?;
     Ok(token)
 }

@@ -10,9 +10,9 @@ mod config {
 }
 
 mod models {
+    use crate::auth::claims::IdClaims;
     use serde::{Deserialize, Serialize};
     use tokio_pg_mapper_derive::PostgresMapper;
-    use crate::auth::claims::IdClaims;
 
     #[derive(Debug, Serialize)]
     pub struct TokenResponse {
@@ -44,7 +44,7 @@ mod models {
                 name: self.name,
                 email: self.email,
                 id: self.id,
-                at_hash: None
+                at_hash: None,
             }
         }
     }
@@ -83,7 +83,10 @@ mod db {
     use deadpool_postgres::Client;
     use tokio_pg_mapper::FromTokioPostgresRow;
 
-    use crate::{errors::MyError, models::{User, LogonRequest}};
+    use crate::{
+        errors::MyError,
+        models::{LogonRequest, User},
+    };
 
     pub async fn get_user(client: &Client, user_info: LogonRequest) -> Result<User, MyError> {
         let _stmt = "SELECT id::TEXT, name, email, hashpassword, salt from users where email = $1;"
@@ -91,10 +94,7 @@ mod db {
         let stmt = client.prepare(&_stmt).await.unwrap();
 
         client
-            .query(
-                &stmt,
-                &[ &user_info.username ],
-            )
+            .query(&stmt, &[&user_info.username])
             .await?
             .iter()
             .map(|row| User::from_row_ref(row).unwrap())
@@ -105,18 +105,22 @@ mod db {
 }
 
 mod handlers {
-    use actix_web::{web, Error, HttpResponse};
-    use deadpool_postgres::{Client, Pool};
-    use hmac::{Hmac, Mac};
-    use sha2::Sha256;
-    use chrono::{prelude::*, Duration};
-    use base64::{engine::general_purpose, Engine as _};
-    use crate::{db, errors::MyError, models::{LogonRequest, TokenResponse}};
-    use std::fs;
-    use std::time::Instant;
-    use jsonwebtoken::{encode, Algorithm, EncodingKey, DecodingKey, Header};
     use crate::auth::claims::{AccessClaims, JwtClaim};
     use crate::auth::tokens::TokenPair;
+    use crate::{
+        db,
+        errors::MyError,
+        models::{LogonRequest, TokenResponse},
+    };
+    use actix_web::{web, Error, HttpResponse};
+    use base64::{engine::general_purpose, Engine as _};
+    use chrono::{prelude::*, Duration};
+    use deadpool_postgres::{Client, Pool};
+    use hmac::{Hmac, Mac};
+    use jsonwebtoken::{encode, Algorithm, DecodingKey, EncodingKey, Header};
+    use sha2::Sha256;
+    use std::fs;
+    use std::time::Instant;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -170,11 +174,20 @@ mod handlers {
                 .expires_in(Duration::minutes(60).num_seconds().unsigned_abs());
 
             let id_claims = new_user.to_id_claims();
-            let access_claims = AccessClaims{ session_id: "session_id".to_string() };
+            let access_claims = AccessClaims {
+                session_id: "session_id".to_string(),
+            };
 
             let n2 = start.elapsed();
 
-            let token_pair = TokenPair::create(&encoding_key, &header, common_claims, id_claims, access_claims).unwrap();
+            let token_pair = TokenPair::create(
+                &encoding_key,
+                &header,
+                common_claims,
+                id_claims,
+                access_claims,
+            )
+            .unwrap();
             let id_token = token_pair.id_token.raw;
             let access_token = token_pair.access_token.raw;
 
@@ -208,7 +221,6 @@ use crate::config::ExampleConfig;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
     let num_cpus = num_cpus::get_physical();
     println!("Available CPUs: {}", num_cpus);
 
@@ -225,17 +237,15 @@ async fn main() -> std::io::Result<()> {
     let encoding_key = jsonwebtoken::EncodingKey::from_rsa_pem(include_bytes!("private_key.pem"))
         .expect("Should have been able to read the file");
 
-    println!("encoding read");
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new((pool.clone(), encoding_key.clone())))
-            .service(web::resource("/token").route(web::post().to(add_user )))
+            .service(web::resource("/token").route(web::post().to(add_user)))
     })
-        .workers(num_cpus*5 )
-        .bind(config.server_addr.clone())?
-        .run();
+    .workers(num_cpus * 5)
+    .bind(config.server_addr.clone())?
+    .run();
     println!("Server running at http://{}/", config.server_addr);
-
 
     server.await
 }
