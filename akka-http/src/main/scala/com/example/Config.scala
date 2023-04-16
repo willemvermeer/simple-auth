@@ -21,9 +21,9 @@ object SimpleAuthConfig {
       poolName = dbCfg.getString("pool-name"),
       autoCommit = dbCfg.getBoolean("auto-commit"),
       maximumPoolSize = dbCfg.getInt("maximum-pool-size"),
-      user = dbCfg.getString("user"),
-      password = dbCfg.getString("password"),
-      schema = dbCfg.getString("schema"),
+      user = fromEnv("db-user", dbCfg.getString("user")),
+      password = fromEnv("db-password", dbCfg.getString("password")),
+      schema = fromEnv("db-schema", dbCfg.getString("schema")),
       host = fromEnv("db-host", dbCfg.getString("host")),
       port = fromEnv("db-port", dbCfg.getInt("port").toString).toInt
     )
@@ -52,7 +52,7 @@ case class DbConfig(
   host: String,
   port: Int
 ) {
-  def url = s"jdbc:postgresql://$host:$port/$schema"
+  def url = s"jdbc:postgresql://$host:$port/$schema?sslmode=disable"
   def hikari: HikariConfig = {
     val hikonf = new HikariConfig()
     hikonf.setPoolName(poolName)
