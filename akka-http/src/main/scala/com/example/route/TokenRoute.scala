@@ -5,7 +5,6 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import com.example.auth.TokenCreator
 import com.example.db.{ DbQuery, HikariConnectionPool }
-import com.example.ops.FutureTryOps.FutureTryOps
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 import org.json4s.native.Serialization
 import org.json4s.{ native, DefaultFormats }
@@ -28,9 +27,9 @@ case class TokenRoute(dbPool: HikariConnectionPool, tokenCreator: TokenCreator)(
       entity(as[TokenRequest]) { tokenRequest =>
         val now = System.currentTimeMillis()
         onComplete(for {
-          userInfo  <- DbQuery.userInfo(tokenRequest.username, dbPool).toFuture
+          userInfo  <- Future.fromTry(DbQuery.userInfo(tokenRequest.username, dbPool))
           timeDb    = System.currentTimeMillis()
-          tokenPair <- tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString).toFuture
+          tokenPair <- Future.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString))
           timeToken = System.currentTimeMillis()
           _         = println(s"Akka Db time ${timeDb - now}ms token creation ${timeToken - timeDb}ms.")
           response <- Future {
