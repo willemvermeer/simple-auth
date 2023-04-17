@@ -41,7 +41,6 @@ lazy val root = (project in file("."))
       "commons-codec"        % "commons-codec"      % "1.15",
       "com.github.jwt-scala" %% "jwt-core"          % "9.2.0",
       "com.typesafe"         % "config"             % "1.4.2",
-      "org.bouncycastle"      % "bcpkix-jdk15on"    % "1.70",
       "dev.zio"              %% "zio-test"          % "2.0.5" % Test
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
