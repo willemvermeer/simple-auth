@@ -3,7 +3,6 @@ package com.example
 import com.example.auth.TokenCreator
 import com.example.db.ConnectionPool
 import com.example.route.TokenRoute
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import zio._
 import zio.http._
 
@@ -17,11 +16,8 @@ object Main extends ZIOAppDefault {
     val pool              = ConnectionPool.live
     val tokenCreator      = TokenCreator.live
 
-    // make sure we have a crypto implementation
-    java.security.Security.addProvider(new BouncyCastleProvider())
-
     (Server.install(TokenRoute.app).flatMap { port =>
-      Console.printLine(s"ZIO simple auth open for e-Business on port: $port")
+      Console.printLine(s"ZIO simple auth open for e-Business on port: $port DB pool size ${simpleAuthConfig.db.maximumPoolSize}")
     } *> ZIO.never)
       .provide(configLayer, Server.live, simpleConfigLayer, tokenCreator, pool)
   }
