@@ -8,7 +8,7 @@ import com.example.db.{ DbQuery, HikariConnectionPool }
 import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 import org.json4s.native.Serialization
 import org.json4s.{ native, DefaultFormats }
-import java.nio.charset.StandardCharsets.UTF_8
+
 import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
@@ -31,7 +31,7 @@ case class TokenRoute(dbPool: HikariConnectionPool, tokenCreator: TokenCreator)(
           timeDb   = System.currentTimeMillis()
           passwordOk <- Future.fromTry(
                          KeyTools
-                           .verifyHashMatch(tokenRequest.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
+                           .verifyHashMatch(tokenRequest.password, userInfo.salt, userInfo.hashpassword)
                        )
           timeHash  = System.currentTimeMillis()
           _         <- if (passwordOk) Future.successful(()) else Future.failed(new RuntimeException("Incorrect password"))

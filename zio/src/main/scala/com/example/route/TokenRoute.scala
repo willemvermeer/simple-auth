@@ -39,7 +39,7 @@ object TokenRoute {
           timedHash <- ZIO
                         .fromTry(
                           KeyTools
-                            .verifyHashMatch(tokenReq.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
+                            .verifyHashMatch(tokenReq.password, userInfo.salt, userInfo.hashpassword)
                         )
                         .timed
           _            <- ZIO.cond(timedHash._2, (), "Incorrect password")

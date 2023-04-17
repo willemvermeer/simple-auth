@@ -1,6 +1,7 @@
 package com.example.auth
 
 import java.nio.charset.StandardCharsets
+import java.nio.charset.StandardCharsets.UTF_8
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.{ KeyFactory, PrivateKey }
 import java.util.Base64
@@ -27,12 +28,12 @@ object KeyTools {
       .trim
 
   /**
-   * Returns true iff the salted SHA256 hash of plainText matches password
+   * Returns true iff the salted SHA256 hash of plainText matches saltedPassword
    * Both saltedPassword and salted are assumed to be supplied in Base64 encoded format!
    */
-  def verifyHashMatch(plainText: Array[Byte], salt: String, saltedPassword: String): Try[Boolean] = Try {
+  def verifyHashMatch(plainText: String, salt: String, saltedPassword: String): Try[Boolean] = Try {
     saltedPassword == new String(
-      Base64.getEncoder.encode(generateHmacHash(plainText, salt)),
+      Base64.getEncoder.encode(generateHmacHash(plainText.getBytes(UTF_8), salt)),
       StandardCharsets.UTF_8
     )
   }
