@@ -116,6 +116,7 @@ mod handlers {
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
     use sha2::Sha256;
     use std::time::Instant;
+    use uuid::Uuid;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -156,7 +157,7 @@ mod handlers {
 
             let id_claims = user_from_db.to_id_claims();
             let access_claims = AccessClaims {
-                session_id: "session_id".to_string(),
+                session_id: Uuid::new_v4().to_string(),
             };
 
             let token_pair = TokenPair::create(
