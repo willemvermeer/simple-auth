@@ -219,8 +219,9 @@ async fn main() -> std::io::Result<()> {
     .run();
 
     println!(
-        "Actix-web simple auth open for e-Business at http://{}/",
-        config.server_addr
+        "Actix-web simple auth open for e-Business at http://{}/ DB pool size {}",
+        config.server_addr,
+        config.pg.pool.unwrap().max_size,
     );
 
     server.await
