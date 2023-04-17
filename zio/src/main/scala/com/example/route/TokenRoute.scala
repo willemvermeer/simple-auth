@@ -3,10 +3,10 @@ package com.example.route
 import com.example.SimpleAuthConfig
 import com.example.auth.{ KeyTools, TokenCreator }
 import com.example.db.{ DbQuery, HikariConnectionPool }
-import zio.{ Console, Duration, UIO, ZIO }
 import zio.http._
 import zio.http.model.Method
 import zio.json._
+import zio.{ Console, Duration, ZIO }
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.temporal.ChronoUnit.NANOS
