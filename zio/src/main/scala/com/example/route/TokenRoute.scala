@@ -39,10 +39,10 @@ object TokenRoute {
           timedHash <- ZIO
                         .fromTry(
                           KeyTools
-                            .verifyHmacHash(tokenReq.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
+                            .verifyHashMatch(tokenReq.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
                         )
                         .timed
-          _            <- ZIO.cond(timedHash._2, ZIO.succeed(()), ZIO.fail("Incorrect password"))
+          _            <- ZIO.cond(timedHash._2, (), "Incorrect password")
           tokenCreator <- ZIO.service[TokenCreator]
           timedToken   <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
           tokenPair    = timedToken._2

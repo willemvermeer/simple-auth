@@ -31,7 +31,7 @@ case class TokenRoute(dbPool: HikariConnectionPool, tokenCreator: TokenCreator)(
           timeDb   = System.currentTimeMillis()
           passwordOk <- Future.fromTry(
                          KeyTools
-                           .verifyHmacHash(tokenRequest.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
+                           .verifyHashMatch(tokenRequest.password.getBytes(UTF_8), userInfo.salt, userInfo.hashpassword)
                        )
           timeHash  = System.currentTimeMillis()
           _         <- if (passwordOk) Future.successful(()) else Future.failed(new RuntimeException("Incorrect password"))

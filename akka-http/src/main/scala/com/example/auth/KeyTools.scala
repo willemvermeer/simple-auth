@@ -28,9 +28,9 @@ object KeyTools {
 
   /**
    * Returns true iff the salted SHA256 hash of plainText matches password
-   * Both password and salted are assumed to be supplied in Base64 encoded format!
+   * Both saltedPassword and salted are assumed to be supplied in Base64 encoded format!
    */
-  def verifyHmacHash(plainText: Array[Byte], salt: String, saltedPassword: String): Try[Boolean] = Try {
+  def verifyHashMatch(plainText: Array[Byte], salt: String, saltedPassword: String): Try[Boolean] = Try {
     saltedPassword == new String(
       Base64.getEncoder.encode(generateHmacHash(plainText, salt)),
       UTF_8
