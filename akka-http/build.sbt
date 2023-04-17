@@ -36,9 +36,8 @@ lazy val akkaLibraryDependencies: Seq[ModuleID] = Seq(
   "org.json4s"           %% "json4s-ext"               % "4.0.6",
   "com.github.jwt-scala" %% "jwt-core"                 % "9.2.0",
   "com.github.jwt-scala" %% "jwt-json4s-native"        % "9.2.0",
-  "org.bouncycastle"      % "bcpkix-jdk15on"           % "1.70",
   "com.typesafe.akka"    %% "akka-actor-testkit-typed" % "2.7.0" % Test,
-  "org.scalatest"        %% "scalatest"                % "3.1.0"     % Test
+  "org.scalatest"        %% "scalatest"                % "3.1.0" % Test
 )
 
 lazy val server = (project in file("."))
