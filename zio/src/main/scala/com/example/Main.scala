@@ -11,7 +11,7 @@ object Main extends ZIOAppDefault {
 
   val run = ZIOAppArgs.getArgs.flatMap { args =>
     val simpleAuthConfig  = SimpleAuthConfig.load()
-    val config            = ServerConfig.default.port(simpleAuthConfig.http.port).maxThreads(100)
+    val config            = ServerConfig.default.port(simpleAuthConfig.http.port)
     val configLayer       = ServerConfig.live(config)
     val simpleConfigLayer = ZLayer.succeed(SimpleAuthConfig.load())
     val pool              = ConnectionPool.live

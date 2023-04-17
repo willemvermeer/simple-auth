@@ -215,7 +215,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new((pool.clone(), encoding_key.clone())))
             .service(web::resource("/token").route(web::post().to(logon_user)))
     })
-    .workers(50)
     .bind(config.server_addr.clone())?
     .run();
 
