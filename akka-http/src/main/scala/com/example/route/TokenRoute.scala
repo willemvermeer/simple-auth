@@ -9,12 +9,11 @@ import de.heikoseeberger.akkahttpjson4s.Json4sSupport._
 import org.json4s.native.Serialization
 import org.json4s.{ native, DefaultFormats }
 
-import java.util.UUID
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
 case class TokenRequest(username: String, password: String)
-case class TokenResponse(access_token: String, id_token: String)
+case class TokenResponse(id_token: String)
 
 case class TokenRoute(dbPool: HikariConnectionPool, tokenCreator: TokenCreator)(implicit val system: ActorSystem) {
   implicit val serialization: Serialization.type = native.Serialization
@@ -35,17 +34,12 @@ case class TokenRoute(dbPool: HikariConnectionPool, tokenCreator: TokenCreator)(
                        )
           timeHash  = System.currentTimeMillis()
           _         <- if (passwordOk) Future.successful(()) else Future.failed(new RuntimeException("Incorrect password"))
-          tokenPair <- Future.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString))
+          token     <- Future.fromTry(tokenCreator.createToken(userInfo))
           timeToken = System.currentTimeMillis()
           _ = println(
             s"Akka Db time ${timeDb - now}ms Password hash ${timeHash - timeDb}ms token creation ${timeToken - timeHash}ms."
           )
-          response <- Future {
-                       TokenResponse(
-                         access_token = tokenPair.accessToken.rawToken,
-                         id_token = tokenPair.idToken.rawToken
-                       )
-                     }
+          response <- Future.successful { TokenResponse(id_token = token.rawToken) }
         } yield response) {
           case Success(value) =>
             complete(StatusCodes.OK, value)
