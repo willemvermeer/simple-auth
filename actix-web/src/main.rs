@@ -154,7 +154,7 @@ mod handlers {
 
             let id_claims = user_from_db.to_id_claims();
             let token = IdToken::create(&encoding_key, &header, common_claims, id_claims).unwrap();
-            let time_token = start.elapsed() - time_hash;
+            let time_token = start.elapsed() - time_hash - time_db;
 
             let response = TokenResponse {
                 id_token: token.raw,
