@@ -6,7 +6,6 @@ import org.json4s.ext.JavaTypesSerializers
 import org.json4s.{ DefaultFormats, Formats }
 import pdi.jwt._
 
-import java.security.MessageDigest
 import java.time.Clock
 import scala.util.Try
 
@@ -18,48 +17,16 @@ case class TokenCreator(config: AuthConfig) {
   val algorithm     = JwtAlgorithm.fromString("RS256")
   val defaultHeader = JwtHeader(algorithm = Some(algorithm))
 
-  def encode(header: JwtHeader, claims: JwtClaim): Try[String] = Try {
-    Jwt.encode(header, claims, config.privateKey)
-  }
+  def createToken(userInfo: UserInfo): Try[IdToken] =
+    createIdToken(IdClaims.from(userInfo))
 
-  def createTokenPair(userInfo: UserInfo, sessionId: String): Try[TokenPair] = {
-    val accessClaims = AccessClaims(sessionId)
-    val idClaims     = IdClaims.from(userInfo)
-    for {
-      accessToken        <- createAccessToken(accessClaims)
-      at_hash            <- createFieldHash(accessToken.rawToken, algorithm)
-      idClaimsWithAtHash = idClaims.copy(at_hash = Some(at_hash))
-      idToken            <- createIdToken(idClaimsWithAtHash)
-    } yield TokenPair(idToken = idToken, accessToken = accessToken)
-  }
-
-  def createAccessToken(content: AccessClaims, coreClaims: JwtClaim = JwtClaim()): Try[AccessToken] =
+  private def createIdToken(content: IdClaims, coreClaims: JwtClaim = JwtClaim()): Try[IdToken] =
     for {
       extraClaimsJson <- Try(write(content))
       claims          = claimWithDefaults(coreClaims.withContent(extraClaimsJson))
       header          = defaultHeader
-      rawToken        <- encode(header, claims)
-    } yield AccessToken(header, claims, content, rawToken)
-
-  def createIdToken(content: IdClaims, coreClaims: JwtClaim = JwtClaim()): Try[IdToken] =
-    for {
-      extraClaimsJson <- Try(write(content))
-      claims          = claimWithDefaults(coreClaims.withContent(extraClaimsJson))
-      header          = defaultHeader
-      rawToken        <- encode(header, claims)
+      rawToken        <- Try(Jwt.encode(header, claims, config.privateKey))
     } yield IdToken(header, claims, content, rawToken)
-
-  val hasher = Try(MessageDigest.getInstance("SHA-256"))
-
-  def createFieldHash(data: String, algorithm: JwtAlgorithm): Try[String] =
-    hasher.flatMap { hasher =>
-      Try {
-        val encodedToken      = JwtBase64.encodeString(data)
-        val hash: Array[Byte] = hasher.digest(JwtBase64.encode(encodedToken))
-        val halfHash          = hash.take(hash.size / 2)
-        JwtBase64.encodeString(halfHash)
-      }
-    }
 
   implicit val clock = Clock.systemUTC()
 
@@ -71,12 +38,10 @@ case class TokenCreator(config: AuthConfig) {
       .expiresIn(10 * 60)
 }
 
-case class AccessClaims(sessionId: String)
 case class IdClaims(
   id: String,
   name: String,
-  email: String,
-  at_hash: Option[String] = None
+  email: String
 )
 
 object IdClaims {
@@ -107,12 +72,3 @@ case class IdToken(
   content: IdClaims,
   rawToken: String
 ) extends Token[IdClaims]
-
-case class AccessToken(
-  header: JwtHeader,
-  claims: JwtClaim,
-  content: AccessClaims,
-  rawToken: String
-) extends Token[AccessClaims]
-
-case class TokenPair(idToken: IdToken, accessToken: AccessToken)

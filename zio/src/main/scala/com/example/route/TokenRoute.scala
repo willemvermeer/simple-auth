@@ -10,14 +10,13 @@ import zio.{ Console, Duration, ZIO }
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.temporal.ChronoUnit.NANOS
-import java.util.UUID
 
 case class TokenRequest(username: String, password: String)
 object TokenRequest {
   implicit val decoder = DeriveJsonDecoder.gen[TokenRequest]
 }
 
-case class TokenResponse(access_token: String, id_token: String)
+case class TokenResponse(id_token: String)
 object TokenResponse {
   implicit val encoder = DeriveJsonEncoder.gen[TokenResponse]
 }
@@ -44,9 +43,9 @@ object TokenRoute {
                         .timed
           _            <- ZIO.cond(timedHash._2, (), "Incorrect password")
           tokenCreator <- ZIO.service[TokenCreator]
-          timedToken   <- ZIO.fromTry(tokenCreator.createTokenPair(userInfo, UUID.randomUUID().toString)).timed
-          tokenPair    = timedToken._2
-          response     = TokenResponse(tokenPair.accessToken.rawToken, tokenPair.idToken.rawToken)
+          timedToken   <- ZIO.fromTry(tokenCreator.createToken(userInfo)).timed
+          token        = timedToken._2
+          response     = TokenResponse(token.rawToken)
           _ <- Console.printLine(
                 s"ZIO Db time ${toMs(timedDb._1)} Password hash ${toMs(timedHash._1)} Token creation ${toMs(timedToken._1)}."
               )
