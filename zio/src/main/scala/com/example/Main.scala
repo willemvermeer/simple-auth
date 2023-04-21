@@ -17,9 +17,7 @@ object Main extends ZIOAppDefault {
     val tokenCreator      = TokenCreator.live
 
     (Server.install(TokenRoute.app).flatMap { port =>
-      Console.printLine(
-        s"ZIO simple auth open for e-Business on port: $port DB pool size ${simpleAuthConfig.db.maximumPoolSize}"
-      )
+      Console.printLine(s"ZIO simple auth open for e-Business on port: $port DB pool size ${simpleAuthConfig.db.maximumPoolSize}")
     } *> ZIO.never)
       .provide(configLayer, Server.live, simpleConfigLayer, tokenCreator, pool)
   }

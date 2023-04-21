@@ -5,10 +5,26 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use crate::auth::errors::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AccessClaims {
+    pub session_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct IdClaims {
     pub id: String,
     pub name: String,
     pub email: String,
+    pub at_hash: Option<String>,
+}
+impl IdClaims {
+    pub fn with_at_hash(self, at_hash: String) -> Self {
+        IdClaims {
+            id: self.id,
+            name: self.name,
+            email: self.email,
+            at_hash: Some(at_hash),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -16,6 +16,7 @@ mod models {
 
     #[derive(Debug, Serialize)]
     pub struct TokenResponse {
+        pub access_token: String,
         pub id_token: String,
     }
 
@@ -40,6 +41,7 @@ mod models {
                 name: self.name,
                 email: self.email,
                 id: self.id,
+                at_hash: None,
             }
         }
     }
@@ -100,8 +102,8 @@ mod db {
 }
 
 mod handlers {
-    use crate::auth::claims::JwtClaim;
-    use crate::auth::tokens::IdToken;
+    use crate::auth::claims::{AccessClaims, JwtClaim};
+    use crate::auth::tokens::TokenPair;
     use crate::{
         db,
         models::{LogonRequest, TokenResponse},
@@ -114,6 +116,7 @@ mod handlers {
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
     use sha2::Sha256;
     use std::time::Instant;
+    use uuid::Uuid;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -153,11 +156,23 @@ mod handlers {
                 .expires_in(Duration::minutes(60).num_seconds().unsigned_abs());
 
             let id_claims = user_from_db.to_id_claims();
-            let token = IdToken::create(&encoding_key, &header, common_claims, id_claims).unwrap();
+            let access_claims = AccessClaims {
+                session_id: Uuid::new_v4().to_string(),
+            };
+
+            let token_pair = TokenPair::create(
+                &encoding_key,
+                &header,
+                common_claims,
+                id_claims,
+                access_claims,
+            )
+            .unwrap();
             let time_token = start.elapsed() - time_hash - time_db;
 
             let response = TokenResponse {
-                id_token: token.raw,
+                access_token: token_pair.access_token.raw,
+                id_token: token_pair.id_token.raw,
             };
 
             println!(
