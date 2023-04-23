@@ -1,6 +1,11 @@
 # simple-auth
 Simple Authentication Web Service for Performance Comparisons
 
+This project was written to enable performance comparisons for a micro-service 'simple-auth' written in akka-http, ZIO and Actix-web (rust). 
+The results were presented on Friday 21st at ZIOWorld conference.
+
+The main performance results are summarized in this image; the full presentation is available in the /docs directory.
+![alt text](docs/PerformanceResults.png "Performance results")
 ## Database
 Start postgres database called `db` on port 5435 in docker container `postgres-simple-auth`:
 ```bash
