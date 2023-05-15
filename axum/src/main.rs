@@ -61,7 +61,6 @@ mod errors {
         PoolError(PoolError),
     }
     impl std::error::Error for MyError {}
-
 }
 
 mod db {
@@ -95,17 +94,18 @@ mod handlers {
     use crate::{
         db,
         models::{LogonRequest, TokenResponse},
+        AppState,
     };
+    use axum::extract::State;
+    use axum::http::StatusCode;
+    use axum::Json;
     use base64::{engine::general_purpose, Engine as _};
     use chrono::Duration;
     use deadpool_postgres::Client;
     use hmac::{Hmac, Mac};
-    use jsonwebtoken::{Algorithm, EncodingKey, Header};
+    use jsonwebtoken::{Algorithm, Header};
     use sha2::Sha256;
     use std::time::Instant;
-    use axum::http::StatusCode;
-    use axum::Json;
-    use axum::extract::State;
     use uuid::Uuid;
 
     type HmacSha256 = Hmac<Sha256>;
@@ -119,21 +119,24 @@ mod handlers {
     }
 
     pub async fn logon_user(
-        State((db_pool, encoding_key)): State<(deadpool_postgres::Pool, EncodingKey)>,
+        State(app_state): State<AppState>,
         Json(logon_req): Json<LogonRequest>,
         // state: web::Data<(Pool, EncodingKey)>,
     ) -> (StatusCode, Json<TokenResponse>) {
         let start = Instant::now();
-        let client: Client = db_pool.get().await.unwrap();
+        let client: Client = app_state.pool.get().await.unwrap();
         let user_from_db = db::get_user(&client, &logon_req).await.unwrap();
         let time_db = start.elapsed();
 
         let encoded = hash_password(&logon_req.password, &user_from_db.salt);
         if encoded != user_from_db.hashpassword {
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(TokenResponse {
-                access_token: "Incorrect password".to_string(),
-                id_token: "Incorrect password".to_string(),
-            }))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(TokenResponse {
+                    access_token: "Incorrect password".to_string(),
+                    id_token: "Incorrect password".to_string(),
+                }),
+            )
         } else {
             let time_hash = start.elapsed() - time_db;
 
@@ -150,7 +153,7 @@ mod handlers {
             };
 
             let token_pair = TokenPair::create(
-                &encoding_key,
+                &app_state.encoding_key,
                 &header,
                 common_claims,
                 id_claims,
@@ -176,14 +179,20 @@ mod handlers {
     }
 }
 
+#[derive(Clone)]
+pub struct AppState {
+    pool: deadpool_postgres::Pool,
+    encoding_key: jsonwebtoken::EncodingKey,
+}
+
+use crate::config::SimpleAuthConfig;
 use ::config::Config;
-use dotenv::dotenv;
-use tokio_postgres::NoTls;
 use axum::{
     routing::{get, post},
     Router,
 };
-use crate::config::SimpleAuthConfig;
+use dotenv::dotenv;
+use tokio_postgres::NoTls;
 
 #[tokio::main]
 async fn main() {
@@ -200,25 +209,19 @@ async fn main() {
     let encoding_key = jsonwebtoken::EncodingKey::from_rsa_pem(include_bytes!("private_key.pem"))
         .expect("Should have been able to read the file");
 
+    let app_state = AppState { pool, encoding_key };
+
     // build our application with a route
     let app = Router::new()
         // `GET /` goes to `root`
         .route("/", get(root))
         .route("/token", post(handlers::logon_user))
-        .with_state((pool, encoding_key));
+        .with_state(app_state);
 
     axum::Server::bind(&"0.0.0.0:3500".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
-
-    // let server = HttpServer::new(move || {
-    //     App::new()
-    //         .app_data(web::Data::new((pool.clone(), encoding_key.clone())))
-    //         .service(web::resource("/token").route(web::post().to(logon_user)))
-    // })
-    // .bind(config.server_addr.clone())?
-    // .run();
 
     println!(
         "Actix-web simple auth open for e-Business at http://{}/ DB pool size {}",
