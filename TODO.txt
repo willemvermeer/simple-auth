@@ -1,0 +1,3 @@
+- introduce test pattern and write a test
+- refactor to TokenManager(Service)
+- read config hocon style

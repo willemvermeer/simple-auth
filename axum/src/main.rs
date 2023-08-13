@@ -89,8 +89,6 @@ mod db {
 }
 
 mod handlers {
-    use crate::auth::claims::{AccessClaims, JwtClaim};
-    use crate::auth::tokens::TokenPair;
     use crate::{
         db,
         models::{LogonRequest, TokenResponse},
@@ -100,13 +98,10 @@ mod handlers {
     use axum::http::StatusCode;
     use axum::Json;
     use base64::{engine::general_purpose, Engine as _};
-    use chrono::Duration;
     use deadpool_postgres::Client;
     use hmac::{Hmac, Mac};
-    use jsonwebtoken::{Algorithm, Header};
     use sha2::Sha256;
     use std::time::Instant;
-    use uuid::Uuid;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -140,26 +135,12 @@ mod handlers {
         } else {
             let time_hash = start.elapsed() - time_db;
 
-            let header = Header::new(Algorithm::RS256);
-            let common_claims = JwtClaim::empty()
-                .with_audience("simple-auth.example.com".to_string())
-                .with_issuer("https://example.com".to_string())
-                .issued_now()
-                .expires_in(Duration::minutes(60).num_seconds().unsigned_abs());
+            let token_manager = &app_state.token_manager;
 
-            let id_claims = user_from_db.to_id_claims();
-            let access_claims = AccessClaims {
-                session_id: Uuid::new_v4().to_string(),
-            };
+            let token_pair = token_manager
+                .create_token_pair(user_from_db.to_id_claims())
+                .unwrap();
 
-            let token_pair = TokenPair::create(
-                &app_state.encoding_key,
-                &header,
-                common_claims,
-                id_claims,
-                access_claims,
-            )
-            .unwrap();
             let time_token = start.elapsed() - time_hash - time_db;
 
             let response = TokenResponse {
@@ -182,9 +163,10 @@ mod handlers {
 #[derive(Clone)]
 pub struct AppState {
     pool: deadpool_postgres::Pool,
-    encoding_key: jsonwebtoken::EncodingKey,
+    token_manager: TokenManager,
 }
 
+use crate::auth::manager::TokenManager;
 use crate::config::SimpleAuthConfig;
 use ::config::Config;
 use axum::{
@@ -209,7 +191,16 @@ async fn main() {
     let encoding_key = jsonwebtoken::EncodingKey::from_rsa_pem(include_bytes!("private_key.pem"))
         .expect("Should have been able to read the file");
 
-    let app_state = AppState { pool, encoding_key };
+    let token_manager = TokenManager {
+        encoding_key: encoding_key,
+        issuer: "https://example.com".to_string(),
+        audience: "simple-auth.example.com".to_string(),
+    };
+
+    let app_state = AppState {
+        pool,
+        token_manager,
+    };
 
     // build our application with a route
     let app = Router::new()
